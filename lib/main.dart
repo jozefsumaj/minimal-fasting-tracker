@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   runApp(const MinimalFastingTrackerApp());
@@ -32,6 +33,24 @@ class _FastingHomePageState extends State<FastingHomePage> {
   DateTime? endTime;
   List<String> fastingHistory = [];
 
+  @override
+  void initState() {
+    super.initState();
+    _loadFastingHistory();
+  }
+
+  void _loadFastingHistory() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      fastingHistory = prefs.getStringList('fastingHistory') ?? [];
+    });
+  }
+
+  void _saveFastingHistory() async {
+    final prefs = await SharedPreferences.getInstance();
+    prefs.setStringList('fastingHistory', fastingHistory);
+  }
+
   void startFasting() {
     setState(() {
       startTime = DateTime.now();
@@ -45,6 +64,7 @@ class _FastingHomePageState extends State<FastingHomePage> {
       if (startTime != null) {
         fastingHistory.add('Started: ${startTime.toString()}, Ended: ${endTime.toString()}');
         startTime = null;
+        _saveFastingHistory();
       }
     });
   }
