@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -33,7 +35,10 @@ class _FastingHomePageState extends State<FastingHomePage> {
   DateTime? startTime;
   DateTime? endTime;
   List<String> fastingHistory = [];
-  FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
+  FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+      FlutterLocalNotificationsPlugin();
+  Timer? _timer;
+  Duration _elapsedTime = Duration.zero;
 
   @override
   void initState() {
@@ -43,17 +48,21 @@ class _FastingHomePageState extends State<FastingHomePage> {
   }
 
   void _initNotifications() async {
-    const initializationSettingsAndroid = AndroidInitializationSettings('@mipmap/ic_launcher');
-    const initializationSettings = InitializationSettings(android: initializationSettingsAndroid);
+    const initializationSettingsAndroid =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
+    const initializationSettings =
+        InitializationSettings(android: initializationSettingsAndroid);
     await flutterLocalNotificationsPlugin.initialize(initializationSettings);
   }
 
   void _showNotification(String title, String body) async {
     const androidPlatformChannelSpecifics = AndroidNotificationDetails(
-      'fasting_tracker_nofitication', 'Fasting Start/End Notifications',
-      importance: Importance.max, priority: Priority.high, showWhen: false);
-    const platformChannelSpecifics = NotificationDetails(android: androidPlatformChannelSpecifics);
-    await flutterLocalNotificationsPlugin.show(0, title, body, platformChannelSpecifics, payload: 'item x');
+        'fasting_tracker_nofitication', 'Fasting Start/End Notifications',
+        importance: Importance.max, priority: Priority.high, showWhen: false);
+    const platformChannelSpecifics =
+        NotificationDetails(android: androidPlatformChannelSpecifics);
+    await flutterLocalNotificationsPlugin
+        .show(0, title, body, platformChannelSpecifics, payload: 'item x');
   }
 
   void _loadFastingHistory() async {
@@ -72,20 +81,32 @@ class _FastingHomePageState extends State<FastingHomePage> {
     setState(() {
       startTime = DateTime.now();
       endTime = null;
+      _elapsedTime = Duration.zero;
     });
+    _startTimer();
     _showNotification('Fasting started', 'Your fasting period has begun');
   }
 
   void stopFasting() {
     setState(() {
       endTime = DateTime.now();
+      _timer?.cancel();
       if (startTime != null) {
-        fastingHistory.add('Started: ${startTime.toString()}, Ended: ${endTime.toString()}');
+        fastingHistory.add(
+            'Started: ${startTime.toString()}, Ended: ${endTime.toString()}');
         startTime = null;
         _saveFastingHistory();
       }
     });
     _showNotification('Fasting ended', 'Your fasting period has ended');
+  }
+
+  void _startTimer() {
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      setState(() {
+        _elapsedTime = DateTime.now().difference(startTime!);
+      });
+    });
   }
 
   Duration _calculateLongestFast() {
@@ -140,15 +161,18 @@ class _FastingHomePageState extends State<FastingHomePage> {
                 child: const Text('Stop Fasting'),
               ),
             if (startTime != null)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 16.0),
-                child: Text('Fasting started at: ${startTime.toString()}'),
-              ),
-            if (endTime != null)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 16.0),
-                child: Text('Fasting ended at: ${endTime.toString()}'),
-              ),
+              Column(children: [
+                Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 16.0),
+                    child: CircularProgressIndicator(
+                      value: _elapsedTime.inSeconds % 60 / 60,
+                      color: Colors.green,
+                    )),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 16.0),
+                  child: Text('Elapsed Time: ${_formatDuration(_elapsedTime)}'),
+                )
+              ]),
             const SizedBox(height: 20),
             const Text(
               'History:',
@@ -171,5 +195,12 @@ class _FastingHomePageState extends State<FastingHomePage> {
         ),
       ),
     );
+  }
+
+  String _formatDuration(Duration duration) {
+    String twoDigits(int n) => n.toString().padLeft(2, '0');
+    String twoDigitMinutes = twoDigits(duration.inMinutes.remainder(60));
+    String twoDigitSeconds = twoDigits(duration.inSeconds.remainder(60));
+    return '${twoDigits(duration.inHours)}:$twoDigitMinutes:$twoDigitSeconds';
   }
 }
