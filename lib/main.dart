@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:percent_indicator/circular_percent_indicator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
@@ -150,22 +151,46 @@ class _FastingHomePageState extends State<FastingHomePage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-
-            Column(children: [
-              Padding(
+            // circle button
+            Column(
+              children: [
+                Padding(
                   padding: const EdgeInsets.symmetric(vertical: 16.0),
-                  child: CircularProgressIndicator(
-                    value: _elapsedTime.inSeconds % 60 / 60,
-                    color: Colors.green,
-                  )),
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 16.0),
-                child: Text('Elapsed Time: ${_formatDuration(_elapsedTime)}'),
-              )
-            ]),
+                  child: CircularPercentIndicator(
+                    radius: 120.0,
+                    lineWidth: 40.0,
+                    backgroundWidth: 40.0,
+                    percent: _elapsedTime.inSeconds % 60 / 60,
+                    center: ElevatedButton(
+                      onPressed: () => startTime == null ? startFasting() : stopFasting(),
+                      style: ElevatedButton.styleFrom(
+                        shape: const CircleBorder(),
+                        padding: const EdgeInsets.all(40),
+                        elevation: 4,
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(startTime == null ? Icons.play_arrow : Icons.stop, size: 30),
+                          Text(
+                            startTime == null ? 'Start fasting' : 'Stop fasting',
+                            style: const TextStyle(fontSize: 16),
+                          ),
+                        ],
+                      ),
+                    ),
+                    progressColor: Colors.greenAccent,
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 16.0),
+                  child: Text('Elapsed Time: ${_formatDuration(_elapsedTime)}'),
+                ),
+              ],
+            ),
 
             const Text(
-              'History:',
+              'History',
               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             
@@ -199,20 +224,6 @@ class _FastingHomePageState extends State<FastingHomePage> {
                 },
               ),
             ),
-            
-            const SizedBox(height: 20),
-            
-            if (startTime == null)
-              ElevatedButton(
-                onPressed: startFasting,
-                child: const Text('Start Fasting'),
-              ),
-            
-            if (startTime != null && endTime == null)
-              ElevatedButton(
-                onPressed: stopFasting,
-                child: const Text('Stop Fasting'),
-              ),
             
             const SizedBox(height: 20),
             
