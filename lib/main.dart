@@ -150,46 +150,74 @@ class _FastingHomePageState extends State<FastingHomePage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
+
+            Column(children: [
+              Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 16.0),
+                  child: CircularProgressIndicator(
+                    value: _elapsedTime.inSeconds % 60 / 60,
+                    color: Colors.green,
+                  )),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16.0),
+                child: Text('Elapsed Time: ${_formatDuration(_elapsedTime)}'),
+              )
+            ]),
+
+            const Text(
+              'History:',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            
+            // history heatmap/grid
+            Expanded(
+              child: GridView.builder(
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 10,
+                    crossAxisSpacing: 4.0,
+                    mainAxisSpacing: 4.0),
+                itemCount: fastingHistory.length,
+                itemBuilder: (context, index) {
+                  var entry = fastingHistory[index];
+                  var parts = entry.split(', ');
+                  var start = DateTime.parse(parts[0].split(': ')[1]);
+                  var end = DateTime.parse(parts[1].split(': ')[1]);
+                  var duration = end.difference(start);
+
+                  return Container(
+                    decoration: BoxDecoration(
+                      color: _getColorForDuration(duration),
+                      border: Border.all(color: Colors.black12),
+                    ),
+                    child: Center(
+                      child: Text(
+                        '${duration.inMinutes}m',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+            
+            const SizedBox(height: 20),
+            
             if (startTime == null)
               ElevatedButton(
                 onPressed: startFasting,
                 child: const Text('Start Fasting'),
               ),
+            
             if (startTime != null && endTime == null)
               ElevatedButton(
                 onPressed: stopFasting,
                 child: const Text('Stop Fasting'),
               ),
-            if (startTime != null)
-              Column(children: [
-                Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 16.0),
-                    child: CircularProgressIndicator(
-                      value: _elapsedTime.inSeconds % 60 / 60,
-                      color: Colors.green,
-                    )),
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 16.0),
-                  child: Text('Elapsed Time: ${_formatDuration(_elapsedTime)}'),
-                )
-              ]),
+            
             const SizedBox(height: 20),
-            const Text(
-              'History:',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            Expanded(
-              child: ListView.builder(
-                itemCount: fastingHistory.length,
-                itemBuilder: (context, index) {
-                  return ListTile(
-                    title: Text(fastingHistory[index]),
-                  );
-                },
-              ),
-            ),
-            const SizedBox(height: 20),
+            
             Text('Longest Fast: ${longestFast.inSeconds} seconds'),
+            
             Text('Average Fast: ${averageFast.inSeconds} seconds'),
           ],
         ),
@@ -202,5 +230,13 @@ class _FastingHomePageState extends State<FastingHomePage> {
     String twoDigitMinutes = twoDigits(duration.inMinutes.remainder(60));
     String twoDigitSeconds = twoDigits(duration.inSeconds.remainder(60));
     return '${twoDigits(duration.inHours)}:$twoDigitMinutes:$twoDigitSeconds';
+  }
+
+  Color _getColorForDuration(Duration duration) {
+    int seconds = duration.inSeconds;
+    int maxSeconds = 60; // You can adjust this based on your needs
+    int intensity = (255 * (seconds / maxSeconds)).clamp(0, 255).toInt();
+    return Color.fromARGB(
+        255, intensity, 255 - intensity, 0); // Green to Red scale
   }
 }
